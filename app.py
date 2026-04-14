@@ -34,13 +34,31 @@ if uploaded:
             + df_items["On PO"].fillna(0)
         )
 
-        # Calculate Revised Needed
-        df_items["Revised Needed"] = df_items.apply(
-            lambda row: row["Max Stock"] - row["Revised Available"]
-            if row["Revised Available"] <= row["Reorder Pt"]
-            else 0,
-            axis=1
-        )
+        # Function to calculate Revised Needed with new rules
+        def calculate_revised_needed(row):
+            revised_available = row["Revised Available"]
+            reorder_pt = row["Reorder Pt"]
+            max_stock = row["Max Stock"]
+
+            # Special case: both zero
+            if revised_available == 0 and reorder_pt == 0:
+                return 0
+
+            # Only calculate when Revised Available <= Reorder Pt
+            if revised_available <= reorder_pt:
+
+                # Case 1: Max Stock is missing
+                if pd.isna(max_stock):
+                    return (reorder_pt - revised_available) + 1
+
+                # Case 2: Max Stock exists
+                return max_stock - revised_available
+
+            # Otherwise, no reorder needed
+            return 0
+
+        # Apply the calculation
+        df_items["Revised Needed"] = df_items.apply(calculate_revised_needed, axis=1)
 
         # Reassemble final output (items first, then total row)
         df_final = pd.concat([df_items, df_total], ignore_index=True)
