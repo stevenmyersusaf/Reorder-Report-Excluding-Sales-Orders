@@ -1,17 +1,20 @@
 import streamlit as st
 import pandas as pd
+import io
 
 st.title("Reorder Report – Revised Availability Calculator")
 
 uploaded = st.file_uploader("Upload SOS Reorder Report (Excel)", type=["xlsx"])
 
 if uploaded:
-    df = pd.read_excel(uploaded)
+    # Read the FULL binary buffer to avoid partial reads on Streamlit Cloud
+    data = uploaded.read()
+    df = pd.read_excel(io.BytesIO(data), engine="openpyxl")
 
     # Normalize column names
     df.columns = [c.strip() for c in df.columns]
 
-    # Identify the total row (SOS usually labels it "Total")
+    # Identify the total row (SOS labels it "Total" in column A)
     total_mask = df.iloc[:, 0].astype(str).str.strip().str.lower() == "total"
 
     # Separate item rows and total row
